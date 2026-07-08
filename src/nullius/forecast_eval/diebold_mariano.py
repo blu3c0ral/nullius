@@ -28,6 +28,7 @@ import pandas as pd
 from scipy.stats import norm
 from scipy.stats import t as t_dist
 
+from ..clock import DAILY, Clock
 from ..result import CheckResult
 from ._common import ArrayLike, default_hac_lag, to_1d_array
 from .qlike import qlike_loss
@@ -209,19 +210,25 @@ def dm_test(
     horizon: int = 1,
     alpha: float = 0.05,
     cluster: bool | None = None,
+    clock: Clock = DAILY,
 ) -> CheckResult:
-    """Public DM dispatcher returning a :class:`CheckResult`.
+    """Public DM dispatcher returning an informational :class:`CheckResult`.
 
     Pass a frame with a ``loss_diff`` column (``L1 - L2`` per row). If an ``asset`` column
     is present the panel/time-clustered variant runs by default; forcing ``cluster=False``
     on panel-shaped data runs the pooled series and raises the severity to ``warning``,
     because pooling correlated assets inflates the DM statistic by up to √N.
 
-    ``passed`` is ``True`` when the accuracy difference is significant at ``alpha`` (HLN
-    p-value); a negative statistic favours model 1.
+    DM is a two-sided test of *equal* predictive accuracy, not a pass/fail guardrail, so the
+    result is informational (``passed is None``); whether the difference is significant at
+    ``alpha`` (and which model it favours) is reported in ``details``. For overlapping
+    multi-bar forecasts set ``horizon`` (in bars) so the HAC lag widens accordingly, or fix
+    it via ``clock.hac_lag``; the per-time series of the panel variant is autocorrelated at
+    the forecast horizon.
     """
     if loss_diff_col not in losses.columns:
         raise ValueError(f"losses frame missing column {loss_diff_col!r}")
+    effective_lag = hac_lag if hac_lag is not None else clock.hac_lag
     has_asset = asset_col in losses.columns
     use_panel = has_asset if cluster is None else (cluster and has_asset)
     forced_pool = has_asset and cluster is False
@@ -232,12 +239,14 @@ def dm_test(
             time_col=time_col,
             asset_col=asset_col,
             loss_diff_col=loss_diff_col,
-            hac_lag=hac_lag,
+            hac_lag=effective_lag,
             horizon=horizon,
         )
         method = "panel (clustered by time)"
     else:
-        res = dm_stat(losses[loss_diff_col].to_numpy(dtype=float), hac_lag=hac_lag, horizon=horizon)
+        res = dm_stat(
+            losses[loss_diff_col].to_numpy(dtype=float), hac_lag=effective_lag, horizon=horizon
+        )
         method = "pooled series"
 
     significant = res.dm_p_value_hln < alpha
@@ -258,11 +267,13 @@ def dm_test(
             else ""
         )
     )
+    # Threshold on the same reference distribution used for `significant` (t, df=n-1).
+    crit = float(t_dist.isf(alpha / 2.0, df=max(res.n_obs - 1, 1)))
     return CheckResult(
         name="diebold_mariano",
-        passed=significant,
+        passed=None,
         severity=severity,
         statistic=res.dm_stat_hln,
-        threshold=float(norm.isf(alpha / 2.0)),
+        threshold=crit,
         details=details,
     )

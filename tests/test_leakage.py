@@ -75,6 +75,24 @@ class TestPrefixInvariance:
         with pytest.raises(ValueError, match="time_col"):
             nl.check_prefix_invariance(lambda d: d[["asset"]], data)
 
+    def test_explicit_keys_align_third_dimension(self):
+        # An output with two legs per (time, asset) is not uniquely keyed by (time, asset),
+        # but IS by (time, asset, leg): the explicit keys let it align and pass.
+        data = _panel(3)
+
+        def two_leg_pipeline(df):
+            base = df[["time", "asset"]].copy()
+            longs = base.assign(leg="long", signal=1.0)
+            shorts = base.assign(leg="short", signal=-1.0)
+            return pd.concat([longs, shorts], ignore_index=True)
+
+        without = nl.check_prefix_invariance(two_leg_pipeline, data)
+        assert without.passed is False  # duplicate (time, asset) → cannot align
+        with_keys = nl.check_prefix_invariance(
+            two_leg_pipeline, data, keys=["time", "asset", "leg"]
+        )
+        assert with_keys.passed is True
+
 
 class TestSplitPurging:
     def test_purged_splits_are_clean(self):

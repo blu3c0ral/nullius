@@ -68,16 +68,18 @@ class TestSharpeInference:
         assert np.isnan(nl.sharpe_se([0.01]))
 
     def test_property_size(self):
-        # [M2] size: two iid series with EQUAL true Sharpe reject at ~ alpha, not more.
+        # [M2] size: two iid series with EQUAL true Sharpe reject at ~ alpha (nominal 0.05).
+        # Empirically ~0.05 at n=300; the 0.10 bound catches a 2x size distortion without
+        # being flaky (with 400 trials the 3-sigma spread reaches ~0.083).
         rng = np.random.default_rng(0)
         rejections = 0
-        trials = 200
+        trials = 400
         for _ in range(trials):
             a = rng.normal(0.0005, 0.01, 300)
             b = rng.normal(0.0005, 0.01, 300)
             if nl.sharpe_difference_test(a, b, alpha=0.05).passed:
                 rejections += 1
-        assert rejections / trials < 0.15  # nominal 0.05; guards against gross over-rejection
+        assert rejections / trials < 0.10
 
     def test_property_power(self):
         # [M2] power: a genuine Sharpe gap is detected most of the time.

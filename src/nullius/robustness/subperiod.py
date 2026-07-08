@@ -98,9 +98,11 @@ def regime_stratified_metrics(
 ) -> pd.DataFrame:
     """Calmar / Sharpe / MDD by named regime, from a time-indexed return series.
 
-    Slices the full return series by period (preserving cross-period drawdown context: a
-    drawdown that started in one regime and deepened in the next is attributed to where
-    the peak was set) and runs :func:`~nullius.metrics.equity.equity_metrics` on each slice.
+    Each regime's metrics are computed on that period's slice **in isolation**: the equity
+    curve is rebuilt from 1.0 at the slice start, so a drawdown that began before the period
+    is measured only from the in-slice peak, not carried across the boundary. This answers
+    "how did the strategy do *within* each regime", not "where did each drawdown start". To
+    measure the latter, compute the drawdown on the full-sample curve and slice that series.
     """
     r = portfolio_returns.dropna().astype(float)
     r.index = pd.to_datetime(r.index)

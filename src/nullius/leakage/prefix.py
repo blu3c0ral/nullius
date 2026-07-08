@@ -118,6 +118,7 @@ def check_prefix_invariance(
     cut_times: Sequence | None = None,
     *,
     time_col: str = "time",
+    keys: list[str] | None = None,
     atol: float = 1e-9,
 ) -> CheckResult:
     """Verify that outputs dated ``<= T`` do not change when the input is truncated at T.
@@ -126,13 +127,19 @@ def check_prefix_invariance(
     ----------
     pipeline:
         Maps an input frame to a timestamped output frame (signals, thresholds,
-        trades, or predictions). Must return a frame containing ``time_col``; if the
-        output also has an ``asset`` column it is used as a secondary alignment key.
+        trades, or predictions). Must return a frame containing ``time_col``.
     data:
         The full input frame; must contain ``time_col``.
     cut_times:
         Timestamps at which to truncate. Defaults to five evenly spaced across the
         middle 60% of the sample.
+    keys:
+        Columns that uniquely identify a row in the pipeline output, used to align the
+        full and truncated outputs. Defaults to ``[time_col]`` plus ``"asset"`` when that
+        column is present. **The output must be uniquely keyed by these columns** — if it
+        is not (e.g. multiple rows per ``(time, asset)``), the rows cannot be aligned and
+        the probe reports fatal; pass an explicit ``keys`` that does uniquely identify a
+        row (add whatever third dimension your output carries).
     atol:
         Absolute tolerance for numeric equality.
 
@@ -179,13 +186,16 @@ def check_prefix_invariance(
             )
         trunc[time_col] = pd.to_datetime(trunc[time_col])
 
-        keys = [time_col]
-        if "asset" in full.columns and "asset" in trunc.columns:
-            keys.append("asset")
+        if keys is None:
+            align_keys = [time_col]
+            if "asset" in full.columns and "asset" in trunc.columns:
+                align_keys.append("asset")
+        else:
+            align_keys = list(keys)
 
         f_le = full[full[time_col] <= cut_ts]
         t_le = trunc[trunc[time_col] <= cut_ts]
-        m = _mismatch_rows(f_le, t_le, keys, atol, cut_ts)
+        m = _mismatch_rows(f_le, t_le, align_keys, atol, cut_ts)
         if not m.empty:
             evidence_frames.append(m)
 

@@ -49,11 +49,16 @@ class TestDeflatedSharpe:
         assert many < few
 
     def test_denominator_guard_returns_nan(self):
-        # extreme skew/kurt with large sr_hat can drive the PSR denominator <= 0
-        out = nl.deflated_sharpe_ratio(
-            [1.0, 1.0, 1.0, 1.0, -50.0], n_trials=1, var_across_trials=0.0
-        )
-        assert np.isnan(out["dsr"]) or out["passed"] in (True, False)
+        # §4.4b REQUIRED guard: never sqrt a non-positive PSR variance term. For real
+        # sample moments the term is always > 0 (kurt >= skew^2 + 1 makes the quadratic
+        # in sr_hat a perfect square), so we exercise the guard directly with inconsistent
+        # skew/kurt that violate that inequality — the guard must return NaN, not raise.
+        from nullius.multiplicity.dsr import _psr
+
+        assert np.isnan(_psr(0.5, 0.0, 100, skew=10.0, kurt=3.0))  # denom = 1-5+0.125 < 0
+        assert not np.isnan(_psr(0.5, 0.0, 100, skew=0.0, kurt=3.0))
+        # and T < 2 also returns NaN
+        assert np.isnan(_psr(0.5, 0.0, 1, skew=0.0, kurt=3.0))
 
     def test_checkresult_wrapper(self):
         rng = np.random.default_rng(1)
