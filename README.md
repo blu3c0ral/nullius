@@ -8,10 +8,6 @@
 <h1 align="center">Nullius</h1>
 
 <p align="center">
-  <em>nullius in verba</em> — take nobody's word for it
-</p>
-
-<p align="center">
   A falsify-first toolkit for backtests: lookahead detection with negative controls,<br>
   skill placebos, honest forecast evaluation, and multiple-testing deflation.
 </p>
