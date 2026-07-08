@@ -4,9 +4,10 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [0.2.0] — 2026-07-07
+## [0.1.0] — 2026-07-07
 
-First functional release: the general (frequency-blind) core, milestones M1 + M2.
+First functional release (`0.0.0` was the name-reservation placeholder): the general
+(frequency-blind) core, milestones M1 + M2 shipped together.
 
 ### Added — M1 (MVP)
 

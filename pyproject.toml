@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nullius"
-version = "0.2.0"
+version = "0.1.0"
 description = "Falsify-first backtest diagnostics: lookahead detection with negative controls, skill placebos, honest forecast evaluation, and multiple-testing deflation."
 readme = "README.md"
 requires-python = ">=3.11"
