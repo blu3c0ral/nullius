@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Lint (ruff check)
+        run: ruff check src tests examples
+      - name: Format (ruff format --check)
+        run: ruff format --check src tests examples
+      - name: Test with coverage
+        run: pytest --cov=nullius --cov-report=term-missing --cov-fail-under=90
+      - name: Run examples (smoke)
+        run: |
+          for ex in examples/0*.py; do echo "== $ex =="; python "$ex"; done

@@ -4,15 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nullius"
-version = "0.0.0"
-description = "Falsify-first backtest diagnostics: lookahead detection, skill placebos, honest forecast evaluation, and multiple-testing deflation. Name reserved; library in active development."
+version = "0.2.0"
+description = "Falsify-first backtest diagnostics: lookahead detection with negative controls, skill placebos, honest forecast evaluation, and multiple-testing deflation."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 authors = [{ name = "blu3c0ral" }]
 keywords = ["backtesting", "overfitting", "lookahead-bias", "falsification", "quantitative-finance"]
 classifiers = [
-  "Development Status :: 1 - Planning",
+  "Development Status :: 3 - Alpha",
   "Intended Audience :: Financial and Insurance Industry",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
@@ -21,9 +21,48 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Topic :: Office/Business :: Financial :: Investment",
 ]
+dependencies = [
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "scipy>=1.10",
+]
+
+[project.optional-dependencies]
+# Reference cross-checks (Mincer-Zarnowitz vs statsmodels HAC OLS). The core never
+# imports statsmodels — it is used only in the optional-dep test suite.
+reference = ["statsmodels>=0.14"]
+dev = [
+  "pytest>=7.4",
+  "pytest-cov>=4.1",
+  "ruff>=0.4",
+  "statsmodels>=0.14",
+]
 
 [project.urls]
 Homepage = "https://github.com/blu3c0ral/nullius"
+Repository = "https://github.com/blu3c0ral/nullius"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/nullius"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B", "SIM", "C4"]
+ignore = [
+  "E741",  # ambiguous var names (T, N, L, S are standard in the cited formulas)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"examples/*" = ["T201"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["nullius"]
+branch = true

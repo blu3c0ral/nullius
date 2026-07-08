@@ -5,6 +5,13 @@ build/
 __pycache__/
 *.py[cod]
 
+# Test / coverage artifacts
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+
 # Environments
 .venv/
 venv/
